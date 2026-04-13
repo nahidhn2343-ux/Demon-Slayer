@@ -4,44 +4,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const sectionTitle = document.getElementById('section-title');
 
-    // ১. শুরুতে কিছু ডিফল্ট ম্যাঙ্গা দেখানোর জন্য ফাংশন
+    // CORS Proxy URL
+    const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+
+    // ১. শুরুতে ট্রেন্ডিং ম্যাঙ্গা লোড করার ফাংশন
     async function fetchTrendingManga() {
         if (!cardContainer) return;
         cardContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">Loading trending manga...</p>';
         
         try {
-            // MangaDex API থেকে লেটেস্ট ম্যাঙ্গা নেওয়া হচ্ছে (HTTPS নিশ্চিত করা হয়েছে)
-            const response = await fetch('https://api.mangadex.org/manga?limit=12&includes[]=cover_art&contentRating[]=safe&order[followedCount]=desc');
+            // Trendings-এও সব ডাটা পেতে includes[]=cover_art মাস্ট
+            const apiUrl = 'https://api.mangadex.org/manga?limit=24&includes[]=cover_art&contentRating[]=safe&order[followedCount]=desc';
+            const response = await fetch(apiUrl);
             const data = await response.json();
-            
-            if (data.data && data.data.length > 0) {
-                displayManga(data.data);
-            } else {
-                cardContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center">No trending manga found.</p>';
-            }
+            displayManga(data.data);
         } catch (error) {
-            console.error("Error fetching manga:", error);
-            cardContainer.innerHTML = '<p class="text-red-500 col-span-full text-center">Failed to load data. Please check your connection.</p>';
+            try {
+                const response = await fetch(proxyUrl + 'https://api.mangadex.org/manga?limit=24&includes[]=cover_art&contentRating[]=safe');
+                const data = await response.json();
+                displayManga(data.data);
+            } catch (e) {
+                cardContainer.innerHTML = '<p class="text-red-500 col-span-full text-center">API Error. Please check CORS access.</p>';
+            }
         }
     }
 
-    // ২. ম্যাঙ্গা কার্ডগুলো রেন্ডার করার ফাংশন
+    // ২. ম্যাঙ্গা কার্ড রেন্ডার করার আপডেট করা ফাংশন (ইমেজ ফিক্সড)
     function displayManga(mangaList) {
         if (!cardContainer) return;
         cardContainer.innerHTML = '';
         
+        if (!mangaList || mangaList.length === 0) {
+            cardContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">No manga found.</p>';
+            return;
+        }
+
         mangaList.forEach(manga => {
             const id = manga.id;
-            // টাইটেল হ্যান্ডেল করা (English টাইটেল না থাকলে জাপানিজ বা অল্টারনেটিভ দেখাচ্ছে)
             const attributes = manga.attributes;
             const title = attributes.title.en || Object.values(attributes.title)[0] || "Unknown Title";
             
-            // কভার ইমেজ খুঁজে বের করা
-            const coverRelationship = manga.relationships.find(r => r.type === 'cover_art');
-            const coverFileName = coverRelationship ? coverRelationship.attributes.fileName : "";
-            const coverUrl = coverFileName 
-                ? `https://uploads.mangadex.org/covers/${id}/${coverFileName}.256.jpg` 
-                : 'https://via.placeholder.com/300x450?text=No+Cover';
+            // নিখুঁত ইমেজ লজিক: relationships এর ভেতর থেকে cover_art খুঁজে বের করা
+            const coverArt = manga.relationships.find(rel => rel.type === 'cover_art');
+            let coverUrl = 'https://via.placeholder.com/300x450?text=No+Cover';
+
+            if (coverArt && coverArt.attributes && coverArt.attributes.fileName) {
+                // সরাসরি attributes এর ভেতরে fileName থাকলে
+                const fileName = coverArt.attributes.fileName;
+                coverUrl = `https://uploads.mangadex.org/covers/${id}/${fileName}.256.jpg`;
+            } else if (coverArt && !coverArt.attributes) {
+                /* কিছু ক্ষেত্রে API সরাসরি attributes দেয় না, তখন 'includes[]' কাজ না করলে 
+                   এই অংশটি ব্যাকআপ হিসেবে কাজ করবে। তবে আমাদের API কলে 'includes[]' আছে।
+                */
+                coverUrl = 'https://www.mangadex.org/assets/images/manga-placeholder.png';
+            }
 
             const card = document.createElement('div');
             card.className = "group cursor-pointer";
@@ -49,20 +65,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="relative overflow-hidden rounded-xl h-72 shadow-lg bg-zinc-900">
                     <img src="${coverUrl}" alt="${title}" 
                          class="w-full h-full object-cover transition duration-500 group-hover:scale-110"
-                         loading="lazy">
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/300x450?text=Image+Not+Found'">
                     <div class="absolute top-2 left-2 bg-red-600 text-[10px] px-2 py-1 rounded font-bold uppercase">Active</div>
                     <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="openReader('${id}')" class="w-full bg-white text-black text-xs py-2 rounded font-bold hover:bg-red-600 hover:text-white transition">Read Now</button>
+                        <button onclick="openReader('${id}')" class="w-full bg-white text-black text-xs py-2 rounded font-bold">Read Now</button>
                     </div>
                 </div>
-                <h3 class="mt-3 font-medium text-sm group-hover:text-red-500 transition truncate px-1">${title}</h3>
-                <p class="text-[11px] text-gray-500 tracking-wider uppercase px-1">${attributes.status || 'Manga'}</p>
+                <h3 class="mt-3 font-medium text-sm group-hover:text-red-500 transition truncate">${title}</h3>
+                <p class="text-[11px] text-gray-500 tracking-wider uppercase">${attributes.status || 'Manga'}</p>
             `;
             cardContainer.appendChild(card);
         });
     }
 
-    // ৩. সার্চ ফাংশনালিটি
+    // ৩. সার্চ ফাংশনালিটি (সব রেজাল্ট পাওয়ার জন্য লিমিট ১০০)
     if (searchInput) {
         searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
@@ -70,45 +87,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (query === "") return;
 
                 if (sectionTitle) sectionTitle.innerText = `Search results for: ${query}`;
-                cardContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">Searching...</p>';
+                cardContainer.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">Searching all related manga...</p>';
+
+                // contentRating সবগুলো যোগ করা হয়েছে যাতে বেশি রেজাল্ট আসে
+                const searchApiUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=100&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
 
                 try {
-                    // encodeURIComponent ব্যবহার করা হয়েছে যাতে স্পেস বা স্পেশাল ক্যারেক্টার এরর না দেয়
-                    const response = await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=12&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`);
+                    const response = await fetch(searchApiUrl);
                     const data = await response.json();
-                    
-                    if (data.data && data.data.length > 0) {
-                        displayManga(data.data);
-                    } else {
-                        cardContainer.innerHTML = `<p class="text-gray-400 col-span-full text-center">No results found for "${query}"</p>`;
-                    }
+                    displayManga(data.data);
                 } catch (error) {
-                    console.error("Search error:", error);
-                    cardContainer.innerHTML = '<p class="text-red-500 col-span-full text-center">Error during search. Try again.</p>';
+                    try {
+                        const response = await fetch(proxyUrl + searchApiUrl);
+                        const data = await response.json();
+                        displayManga(data.data);
+                    } catch (e) {
+                        cardContainer.innerHTML = '<p class="text-red-500 col-span-full text-center">Search failed. Check your CORS access.</p>';
+                    }
                 }
             }
         });
     }
 
-    // ৪. রিডার পেজে যাওয়ার ফাংশন
+    // ৪. রিডার পেজ ওপেন করা
     window.openReader = function(mangaId) {
-        if (!mangaId) return;
-        window.location.href = `reader.html?id=${mangaId}`;
+        if (mangaId) {
+            window.location.href = `reader.html?id=${mangaId}`;
+        }
     };
 
-    // ৫. স্ক্রল ইফেক্ট (Navbar)
+    // ৫. ন্যাভবার স্ক্রল ইফেক্ট (আপনার আগের লজিক)
     window.addEventListener('scroll', () => {
         if (navbar) {
             if (window.scrollY > 50) {
-                navbar.classList.add('bg-black/90', 'backdrop-blur-md', 'py-4');
-                navbar.classList.remove('p-6');
+                navbar.classList.add('nav-scrolled');
             } else {
-                navbar.classList.remove('bg-black/90', 'backdrop-blur-md', 'py-4');
-                navbar.classList.add('p-6');
+                navbar.classList.remove('nav-scrolled');
             }
         }
     });
 
-    // শুরুতে ট্রেন্ডিং লোড করা
     fetchTrendingManga();
 });
