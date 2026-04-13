@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Reader - Demon Slayer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #0D0D0D; color: white; }
+        .manga-image { max-width: 100%; height: auto; display: block; margin: 0 auto 10px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0D0D0D; }
+        ::-webkit-scrollbar-thumb { background: #CC0000; border-radius: 10px; }
+    </style>
+
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+</head>
+<body class="font-sans">
+
+    <nav class="fixed top-0 w-full bg-black/90 backdrop-blur-md z-50 p-4 border-b border-white/10">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="index.html" class="flex items-center gap-2 text-red-600 font-bold hover:text-white transition">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+            <h1 id="manga-title" class="text-sm md:text-lg font-bold truncate max-w-[200px] md:max-w-md">Loading...</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-400 hidden md:block">Reading Mode: Vertical</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-10 container mx-auto px-4 max-w-4xl">
+        <div id="loading-spinner" class="text-center py-20">
+            <i class="fas fa-circle-notch fa-spin text-4xl text-red-600"></i>
+            <p class="mt-4 text-gray-400">Fetching chapters from Realm of Shadows...</p>
+        </div>
+
+        <div id="reader-content" class="flex flex-col items-center"></div>
+
+        <div id="end-message" class="hidden text-center py-10 mt-10 border-t border-white/10">
+            <p class="text-gray-500 mb-4">You have reached the end of this preview.</p>
+            <a href="index.html" class="bg-red-600 text-white px-8 py-2 rounded font-bold hover:bg-red-700 transition">Explore More</a>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mangaId = urlParams.get('id');
+            const readerContent = document.getElementById('reader-content');
+            const mangaTitleDisplay = document.getElementById('manga-title');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const endMessage = document.getElementById('end-message');
+
+            const proxyUrl = "https://api.allorigins.win/raw?url=";
+
+            if (!mangaId) {
+                readerContent.innerHTML = '<p class="text-center text-red-500">No Manga ID found. Go back to home.</p>';
+                return;
+            }
+
+            try {
+                // ১. ম্যাঙ্গার নাম জানার জন্য এপিআই কল
+                const mangaInfoUrl = `https://api.mangadex.org/manga/${mangaId}`;
+                const infoResponse = await fetch(proxyUrl + encodeURIComponent(mangaInfoUrl));
+                const infoData = await infoResponse.json();
+                const title = infoData.data.attributes.title.en || "Manga Reader";
+                mangaTitleDisplay.innerText = title;
+
+                // ২. চ্যাপ্টার লিস্ট থেকে লেটেস্ট চ্যাপ্টার আইডি নেওয়া
+                const chapterUrl = `https://api.mangadex.org/manga/${mangaId}/feed?limit=1&translatedLanguage[]=en&order[chapter]=asc`;
+                const chapterRes = await fetch(proxyUrl + encodeURIComponent(chapterUrl));
+                const chapterData = await chapterRes.json();
+
+                if (!chapterData.data || chapterData.data.length === 0) {
+                    throw new Error("No English chapters available.");
+                }
+
+                const chapterId = chapterData.data[0].id;
+
+                // ৩. ওই চ্যাপ্টারের ইমেজ সার্ভার ইউআরএল এবং ফাইল নেম নেওয়া
+                const serverUrl = `https://api.mangadex.org/at-home/server/${chapterId}`;
+                const serverRes = await fetch(proxyUrl + encodeURIComponent(serverUrl));
+                const serverData = await serverRes.json();
+
+                const hash = serverData.chapter.hash;
+                const files = serverData.chapter.data; // High quality images
+                const baseUrl = serverData.baseUrl;
+
+                // লোডিং বন্ধ করা
+                loadingSpinner.style.display = 'none';
+
+                // ৪. লুপ চালিয়ে ইমেজগুলো রেন্ডার করা
+                files.forEach(file => {
+                    const img = document.createElement('img');
+                    img.src = `${baseUrl}/data/${hash}/${file}`;
+                    img.className = "manga-image shadow-2xl";
+                    img.loading = "lazy";
+                    img.alt = "Manga Page";
+                    readerContent.appendChild(img);
+                });
+
+                endMessage.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                loadingSpinner.style.display = 'none';
+                readerContent.innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-4xl mb-4"></i>
+                        <p class="text-gray-400">Sorry, this manga content is currently restricted or unavailable in English.</p>
+                        <a href="index.html" class="text-red-600 mt-4 inline-block underline">Try another manga</a>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
