@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demon Slayer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#0D0D0D] text-white font-sans">
+
+    <header class="fixed w-full z-50 transition-all duration-300 p-6" id="navbar">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="relative flex items-center">
+                <i class="fas fa-search absolute left-3 text-gray-400"></i>
+                <input type="text" 
+                       id="searchInput"
+                       placeholder="Search manga (Press Enter)..." 
+                       class="bg-white/10 border border-white/20 text-white pl-10 pr-4 py-2 rounded-full focus:outline-none focus:bg-white/20 transition-all w-64 backdrop-blur-sm">
+            </div>
+
+            <nav class="hidden md:flex gap-8 font-semibold">
+                <a href="index.html" class="hover:text-red-600 transition">Home</a>
+                <a href="#" class="hover:text-red-600 transition">Trending</a>
+                <a href="#" class="hover:text-red-600 transition">Manga</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="relative h-screen flex items-center overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="img/hero1.jpg" alt="Hero Background" class="w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0D0D0D] via-transparent to-transparent"></div>
+        </div>
+
+        <div class="container mx-auto px-10 relative z-10 pt-20">
+            <p class="text-red-600 font-bold tracking-widest mb-2 uppercase">Watch Latest Manga Episode</p>
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-4 leading-tight">
+                Akame Ga Kill Season <br> <span class="text-white">2 Coming Soon</span>
+            </h1>
+            <p class="text-gray-300 max-w-lg mb-8 text-lg">
+                Explore the dark realm of elite assassins. Dive into the world of manga and follow your favorite characters.
+            </p>
+            <div class="flex gap-4">
+                <button class="bg-white text-black px-8 py-3 rounded-md font-bold hover:bg-gray-200 transition">Get Started Now</button>
+                <button class="bg-red-600 text-white px-8 py-3 rounded-md font-bold hover:bg-red-700 transition flex items-center gap-2">
+                    <i class="fas fa-play"></i> Watch Now
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 px-10 container mx-auto">
+        <div class="flex justify-between items-end mb-10">
+            <div>
+                <h2 class="text-3xl font-bold border-l-4 border-red-600 pl-4" id="section-title">Trending Now</h2>
+                <p class="text-gray-500 mt-2">Explore multiple options for maximum fun</p>
+            </div>
+            <a href="#" class="text-gray-400 hover:text-white transition">View All <i class="fas fa-chevron-right text-xs"></i></a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6" id="card-container">
+            </div>
+    </section>
+
+    <footer class="bg-zinc-950 py-10 px-10 border-t border-white/5">
+        <div class="container mx-auto text-center text-gray-500 text-sm">
+            <p>&copy; 2026 AnimeStream. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
