@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trending Manga - Realm of Shadows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <meta name="referrer" content="no-referrer">
+</head>
+<body class="bg-[#0D0D0D] text-white font-sans">
+
+    <header class="fixed w-full z-50 bg-black/80 backdrop-blur-md p-4 border-b border-white/10" id="navbar">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-red-600 tracking-tighter uppercase">DEMON<span class="text-white">SLAYER</span></a>
+            
+            <button id="menu-btn" class="md:hidden text-white text-2xl bg-transparent">
+                <i class="fas fa-bars" id="menu-icon"></i>
+            </button>
+
+            <nav id="nav-menu" class="hidden md:flex gap-8 font-semibold items-center">
+                <a href="index.html" class="hover:text-red-600 transition">Home</a>
+                <a href="trending.html" class="text-red-600 transition">Trending</a>
+                <a href="manga.html" class="hover:text-red-600 transition">Manga</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="relative h-[60vh] flex items-center justify-center overflow-hidden pt-20">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-[#0D0D0D] z-10"></div>
+        <img src="img/hero2.jpg" class="absolute inset-0 w-full h-full object-cover opacity-40 scale-105" alt="Featured">
+        <div class="relative z-20 text-center px-4">
+            <span class="bg-red-600 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest mb-4 inline-block">Weekly Top Pick</span>
+            <h1 class="text-4xl md:text-6xl font-black uppercase mb-4 tracking-tighter">Most Popular Titles</h1>
+            <p class="text-gray-400 max-w-xl mx-auto text-sm md:text-base">Explore the hottest manga right now, updated in real-time from the Realm of Shadows.</p>
+        </div>
+    </section>
+
+    <main class="container mx-auto px-6 py-12">
+        <div class="flex items-center justify-between mb-10">
+            <h2 class="text-2xl font-bold border-l-4 border-red-600 pl-4 uppercase">Global Trending</h2>
+            <div class="text-xs text-gray-500 uppercase tracking-widest">Live Updates</div>
+        </div>
+
+        <div id="trending-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div class="col-span-full text-center py-20">
+                <i class="fas fa-circle-notch fa-spin text-3xl text-red-600"></i>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-zinc-950 py-10 px-10 border-t border-white/5">
+        <div class="container mx-auto text-center text-gray-500 text-sm">
+            <p>&copy; 2026 AnimeStream. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // API Configuration
+        const proxyUrl = "https://cors-anywhere.herokuapp.com/"; // Make sure to request access at cors-anywhere.herokuapp.com/corsdemo
+        const apiUrl = "https://api.mangadex.org/manga?limit=20&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe";
+
+        async function fetchTrending() {
+            const container = document.getElementById('trending-container');
+            try {
+                const response = await fetch(proxyUrl + apiUrl);
+                const data = await response.json();
+                renderTrending(data.data);
+            } catch (error) {
+                container.innerHTML = `<p class="text-red-500 col-span-full text-center">Failed to load real-time data. Please enable CORS access.</p>`;
+            }
+        }
+
+        function renderTrending(mangaList) {
+            const container = document.getElementById('trending-container');
+            container.innerHTML = '';
+
+            mangaList.forEach((manga, index) => {
+                const attrs = manga.attributes;
+                const title = attrs.title.en || Object.values(attrs.title)[0];
+                const coverArt = manga.relationships.find(rel => rel.type === 'cover_art');
+                const fileName = coverArt?.attributes?.fileName;
+                const coverUrl = fileName ? `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg` : 'https://via.placeholder.com/256x400';
+
+                const card = document.createElement('div');
+                card.className = "group relative bg-[#151515] rounded-xl overflow-hidden border border-white/5 hover:border-red-600/50 transition-all duration-500";
+                card.innerHTML = `
+                    <div class="relative h-64 overflow-hidden">
+                        <div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded z-20 shadow-lg">#${index + 1}</div>
+                        <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-[9px] px-2 py-1 rounded z-20 font-bold uppercase border border-white/10">${attrs.status}</div>
+                        <img src="${coverUrl}" class="w-full h-full object-cover transition duration-700 group-hover:scale-110 group-hover:rotate-2" loading="lazy">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-sm font-bold truncate group-hover:text-red-600 transition">${title}</h3>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-[10px] text-gray-500"><i class="fas fa-star text-yellow-500 mr-1"></i>Trending</span>
+                            <span class="text-[10px] text-gray-400 ml-auto uppercase tracking-tighter">${attrs.lastVolume ? 'Vol ' + attrs.lastVolume : 'Ongoing'}</span>
+                        </div>
+                        <button onclick="window.location.href='reader.html?id=${manga.id}'" class="w-full mt-4 bg-white text-black text-[10px] font-bold py-2 rounded-lg hover:bg-red-600 hover:text-white transition-colors uppercase tracking-widest">Read Now</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Hamburger Menu Logic
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            const nav = document.getElementById('nav-menu');
+            const icon = document.getElementById('menu-icon');
+            nav.classList.toggle('hidden');
+            nav.classList.toggle('mobile-nav');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+        });
+
+        fetchTrending();
+    </script>
+</body>
+</html>

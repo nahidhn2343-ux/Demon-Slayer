@@ -47,17 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = attributes.title.en || Object.values(attributes.title)[0] || "Unknown Title";
             
             // নিখুঁত ইমেজ লজিক: relationships এর ভেতর থেকে cover_art খুঁজে বের করা
-            // অনেক সময় includes[] ডাটা attributes এর ভেতর থাকে না, তাই attributes এFileName চেক করতে হবে
             const coverArt = manga.relationships.find(rel => rel.type === 'cover_art');
             let coverUrl = 'https://via.placeholder.com/300x450?text=No+Cover';
 
+            // এখানে পরিবর্তন করা হয়েছে যাতে ফাইলনেম পাওয়া না গেলেও placeholder দেখায় এবং লোগো না আসে
             if (coverArt && coverArt.attributes && coverArt.attributes.fileName) {
-                // সরাসরি attributes এর ভেতরে fileName থাকলে সঠিক ইউআরএল তৈরি
                 const fileName = coverArt.attributes.fileName;
+                // ইমেজ লিঙ্কে প্রক্সি দরকার নেই, সরাসরি দিলে লোড হওয়ার সম্ভাবনা বেশি
                 coverUrl = `https://uploads.mangadex.org/covers/${id}/${fileName}.256.jpg`;
             } else if (coverArt && !coverArt.attributes) {
-                // কিছু ক্ষেত্রে API সরাসরি attributes দেয় না, তখন 'includes[]' কাজ না করলে placeholder দেখাবে
-                // এটি MangaDex লোগো এড়িয়ে ছবি লোড করতে সাহায্য করবে
+                // API সরাসরি attributes না দিলে ব্যাকআপ হিসেবে placeholder
                 coverUrl = 'https://via.placeholder.com/300x450?text=Fetching+Image';
             }
 
@@ -125,4 +124,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fetchTrendingManga();
+});
+
+
+
+/* for phone*/
+
+const menuBtn = document.getElementById('menu-btn');
+const navMenu = document.getElementById('nav-menu');
+const menuIcon = document.getElementById('menu-icon');
+
+menuBtn.addEventListener('click', () => {
+    // মেনু শো/হাইড করা
+    navMenu.classList.toggle('hidden');
+    navMenu.classList.toggle('flex');
+
+    // আইকন পরিবর্তন (হামবুর্গার থেকে ক্রস)
+    if (menuIcon.classList.contains('fa-bars')) {
+        menuIcon.classList.remove('fa-bars');
+        menuIcon.classList.add('fa-times');
+    } else {
+        menuIcon.classList.remove('fa-times');
+        menuIcon.classList.add('fa-bars');
+    }
 });

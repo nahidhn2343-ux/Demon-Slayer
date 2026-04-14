@@ -13,12 +13,11 @@
         ::-webkit-scrollbar-track { background: #0D0D0D; }
         ::-webkit-scrollbar-thumb { background: #CC0000; border-radius: 10px; }
     </style>
-<link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
-<link rel="shortcut icon" href="favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-<link rel="manifest" href="site.webmanifest" />
-    
+    <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
 </head>
 <body class="font-sans">
 
@@ -29,7 +28,7 @@
             </a>
             <h1 id="manga-title" class="text-sm md:text-lg font-bold truncate max-w-[200px] md:max-w-md">Loading...</h1>
             <div class="flex items-center gap-4">
-                <span class="text-xs text-gray-400 hidden md:block">Reading Mode: Vertical</span>
+                <span class="text-xs text-gray-400 hidden md:block">Reading Mode: Vertical (Multi-Language)</span>
             </div>
         </div>
     </nav>
@@ -69,16 +68,17 @@
                 const mangaInfoUrl = `https://api.mangadex.org/manga/${mangaId}`;
                 const infoResponse = await fetch(proxyUrl + encodeURIComponent(mangaInfoUrl));
                 const infoData = await infoResponse.json();
-                const title = infoData.data.attributes.title.en || "Manga Reader";
+                const title = infoData.data.attributes.title.en || Object.values(infoData.data.attributes.title)[0] || "Manga Reader";
                 mangaTitleDisplay.innerText = title;
 
-                // ২. চ্যাপ্টার লিস্ট থেকে লেটেস্ট চ্যাপ্টার আইডি নেওয়া
-                const chapterUrl = `https://api.mangadex.org/manga/${mangaId}/feed?limit=1&translatedLanguage[]=en&order[chapter]=asc`;
+                // ২. চ্যাপ্টার লিস্ট থেকে লেটেস্ট চ্যাপ্টার আইডি নেওয়া (ভাষার ফিল্টার তুলে দেওয়া হয়েছে)
+                // এখানে 'translatedLanguage[]=en' সরিয়ে সব ভাষার চ্যাপ্টার এলাউ করা হয়েছে
+                const chapterUrl = `https://api.mangadex.org/manga/${mangaId}/feed?limit=1&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive`;
                 const chapterRes = await fetch(proxyUrl + encodeURIComponent(chapterUrl));
                 const chapterData = await chapterRes.json();
 
                 if (!chapterData.data || chapterData.data.length === 0) {
-                    throw new Error("No English chapters available.");
+                    throw new Error("No chapters available in any language.");
                 }
 
                 const chapterId = chapterData.data[0].id;
@@ -89,7 +89,7 @@
                 const serverData = await serverRes.json();
 
                 const hash = serverData.chapter.hash;
-                const files = serverData.chapter.data; // High quality images
+                const files = serverData.chapter.data; 
                 const baseUrl = serverData.baseUrl;
 
                 // লোডিং বন্ধ করা
@@ -98,10 +98,15 @@
                 // ৪. লুপ চালিয়ে ইমেজগুলো রেন্ডার করা
                 files.forEach(file => {
                     const img = document.createElement('img');
+                    // সরাসরি uploads.mangadex.org ব্যবহার করলে ইমেজ লোড হওয়ার সম্ভাবনা বেশি
                     img.src = `${baseUrl}/data/${hash}/${file}`;
                     img.className = "manga-image shadow-2xl";
                     img.loading = "lazy";
                     img.alt = "Manga Page";
+                    // ইমেজ লোড ফেল করলে অল্টারনেটিভ সোর্স (Referrer policy এর জন্য)
+                    img.onerror = function() {
+                        this.src = `https://via.placeholder.com/500x750?text=Page+Load+Failed`;
+                    };
                     readerContent.appendChild(img);
                 });
 
@@ -113,7 +118,7 @@
                 readerContent.innerHTML = `
                     <div class="text-center py-20">
                         <i class="fas fa-exclamation-triangle text-red-600 text-4xl mb-4"></i>
-                        <p class="text-gray-400">Sorry, this manga content is currently restricted or unavailable in English.</p>
+                        <p class="text-gray-400">Sorry, this manga content is currently unavailable or could not be loaded.</p>
                         <a href="index.html" class="text-red-600 mt-4 inline-block underline">Try another manga</a>
                     </div>
                 `;

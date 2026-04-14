@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Archive - Realm of Shadows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <meta name="referrer" content="no-referrer">
+</head>
+<body class="bg-[#0D0D0D] text-white font-sans">
+
+      <header class="fixed w-full z-50 bg-black/80 backdrop-blur-md p-4 border-b border-white/10" id="navbar">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold text-red-600 tracking-tighter uppercase">DEMON<span class="text-white">SLAYER</span></a>
+            
+            <button id="menu-btn" class="md:hidden text-white text-2xl bg-transparent">
+                <i class="fas fa-bars" id="menu-icon"></i>
+            </button>
+
+            <nav id="nav-menu" class="hidden md:flex gap-8 font-semibold items-center">
+                <a href="index.html" class="hover:text-red-600 transition">Home</a>
+                <a href="trending.html" class="hover:text-red-600 transition">Trending</a>
+                <a href="manga.html" class="text-red-600 transition">Manga</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 pt-28 pb-12">
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <div class="lg:w-3/4">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-3xl font-black uppercase tracking-widest border-l-4 border-red-600 pl-4">Manga Archive</h2>
+                    <select id="genreFilter" class="bg-zinc-900 border border-white/10 text-xs py-2 px-4 rounded-lg focus:outline-none focus:border-red-600">
+                        <option value="">All Genres</option>
+                        <option value="action">Action</option>
+                        <option value="fantasy">Fantasy</option>
+                        <option value="horror">Horror</option>
+                    </select>
+                </div>
+
+                <div id="manga-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div class="col-span-full text-center py-20">
+                        <i class="fas fa-ghost fa-spin text-4xl text-red-600"></i>
+                        <p class="mt-4 text-gray-500 uppercase text-xs tracking-[0.3em]">Summoning Archive...</p>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="lg:w-1/4">
+                <div class="sticky top-28 bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
+                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <i class="fas fa-fire text-red-600"></i> Recommended
+                    </h3>
+                    <div id="recommended-list" class="flex flex-col gap-6">
+                        </div>
+                </div>
+            </aside>
+
+        </div>
+    </main>
+
+<script>
+    // --- ১. মোবাইল মেনু এবং আইকন টগল লজিক ---
+    function setupMobileMenu() {
+        // আপনার HTML আইডি অনুযায়ী এলিমেন্টগুলো সিলেক্ট করা
+        const menuBtn = document.getElementById('menu-btn');
+        const navMenu = document.getElementById('nav-menu');
+        const menuIcon = document.getElementById('menu-icon');
+
+        if (menuBtn && navMenu && menuIcon) {
+            menuBtn.addEventListener('click', () => {
+                // মেনুর ভিজিবিলিটি টগল করা
+                navMenu.classList.toggle('hidden');
+                
+                // মোবাইল স্ক্রিনের জন্য স্টাইলিশ লেআউট ক্লাস টগল করা
+                navMenu.classList.toggle('flex');
+                navMenu.classList.toggle('flex-col');
+                navMenu.classList.toggle('absolute');
+                navMenu.classList.toggle('top-full'); // হেডারের ঠিক নিচ থেকে শুরু হবে
+                navMenu.classList.toggle('left-0');
+                navMenu.classList.toggle('w-full');
+                navMenu.classList.toggle('bg-black/95');
+                navMenu.classList.toggle('p-8');
+                navMenu.classList.toggle('border-b');
+                navMenu.classList.toggle('border-white/10');
+                navMenu.classList.toggle('text-center');
+
+                // আইকন পরিবর্তন লজিক: Bars থেকে Times (Cross)
+                if (navMenu.classList.contains('hidden')) {
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                } else {
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                }
+            });
+        }
+    }
+
+    // --- ২. ম্যাঙ্গা ডাটা লোডিং লজিক ---
+    // স্থিতিশীল প্রক্সি ব্যবহার করা হয়েছে
+    const proxyUrl = "https://corsproxy.io/?";
+    const mangaApi = "https://api.mangadex.org/manga?limit=12&includes[]=cover_art&contentRating[]=safe";
+    const recApi = "https://api.mangadex.org/manga?limit=5&includes[]=cover_art&order[rating]=desc&contentRating[]=safe";
+
+    async function loadMangaData() {
+        const grid = document.getElementById('manga-grid');
+        try {
+            // মেইন গ্রিড ডাটা ফেচ করা
+            const gridRes = await fetch(proxyUrl + encodeURIComponent(mangaApi));
+            if (!gridRes.ok) throw new Error('Proxy down');
+            const gridData = await gridRes.json();
+            renderGrid(gridData.data);
+
+            // রিকমেন্ডেড সাইডবার ডাটা ফেচ করা
+            const recRes = await fetch(proxyUrl + encodeURIComponent(recApi));
+            const recData = await recRes.json();
+            renderRecommended(recData.data);
+        } catch (error) {
+            console.error("Error summoning manga:", error);
+            // প্রক্সি কাজ না করলে সরাসরি চেষ্টা
+            try {
+                const directRes = await fetch(mangaApi);
+                const directData = await directRes.json();
+                renderGrid(directData.data);
+            } catch (e) {
+                grid.innerHTML = `<p class="text-red-500 col-span-full text-center font-bold">Shadow realm is unreachable. Please refresh the page.</p>`;
+            }
+        }
+    }
+
+    // --- ৩. রেন্ডারিং ফাংশনসমূহ ---
+    function renderGrid(list) {
+        const grid = document.getElementById('manga-grid');
+        grid.innerHTML = '';
+        list.forEach(manga => {
+            const cover = manga.relationships.find(r => r.type === 'cover_art')?.attributes?.fileName;
+            const coverUrl = cover ? `https://uploads.mangadex.org/covers/${manga.id}/${cover}.256.jpg` : 'https://via.placeholder.com/256x400';
+            
+            grid.innerHTML += `
+                <div class="group cursor-pointer">
+                    <div class="relative aspect-[3/4] rounded-xl overflow-hidden shadow-2xl border border-white/5 group-hover:border-red-600/50 transition-all duration-300">
+                        <img src="${coverUrl}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
+                        <div class="absolute bottom-3 left-3 right-3">
+                            <button onclick="location.href='reader.html?id=${manga.id}'" class="w-full py-2 bg-white/10 backdrop-blur-md text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600">READ NOW</button>
+                        </div>
+                    </div>
+                    <h4 class="mt-3 text-sm font-bold truncate group-hover:text-red-600 transition">${manga.attributes.title.en || 'Manga Title'}</h4>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-tighter">${manga.attributes.status}</p>
+                </div>`;
+        });
+    }
+
+    function renderRecommended(list) {
+        const recList = document.getElementById('recommended-list');
+        recList.innerHTML = '';
+        list.forEach(manga => {
+            const cover = manga.relationships.find(r => r.type === 'cover_art')?.attributes?.fileName;
+            const coverUrl = cover ? `https://uploads.mangadex.org/covers/${manga.id}/${cover}.256.jpg` : 'https://via.placeholder.com/100x150';
+            
+            recList.innerHTML += `
+                <div class="flex gap-4 group cursor-pointer mb-4" onclick="location.href='reader.html?id=${manga.id}'">
+                    <div class="w-16 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-white/10 shadow-lg">
+                        <img src="${coverUrl}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <h4 class="text-xs font-bold line-clamp-2 group-hover:text-red-600 transition">${manga.attributes.title.en || 'Manga Title'}</h4>
+                        <span class="text-[9px] text-gray-500 mt-1 uppercase tracking-widest"><i class="fas fa-star text-red-600 mr-1"></i> Featured</span>
+                    </div>
+                </div>`;
+        });
+    }
+
+    // --- ৪. এক্সিকিউশন ---
+    document.addEventListener('DOMContentLoaded', () => {
+        setupMobileMenu();
+        loadMangaData();
+    });
+</script>
+</body>
+</html>
